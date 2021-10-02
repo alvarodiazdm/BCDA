@@ -28,10 +28,16 @@ contract Asignatura {
     // Boolean para ver si la asignatura está cerrada o no
     /* Si la asignatura está cerrada=true:
     - No matricular nuevos alumnos - Hecho
-    - No añadir profesores - FALTA
+    - No añadir profesores - Hecho
     - No crear evaluaciones - Hecho
     - No poner notas - Hecho */ 
     bool public cerrada;
+    
+    // Diccionario con los nombres de los profesores asociados a su direccion de usuario
+    mapping(address => string) public datosProfesor;
+    
+    // Direcciones de usuario de los profesores
+    address[] public profesores;
     
     /**
      * Datos de una evaluación
@@ -49,6 +55,7 @@ contract Asignatura {
     struct DatosAlumno{
         string nombre;
         string email;
+        string dni;
     }
     
     /// Acceder a los datos de un alumno dada su dirección
@@ -69,7 +76,7 @@ contract Asignatura {
         uint calificacion;
     }
     
-    // Dada pa dirección de un alumno, y el índice de la evaluación, devuelve
+    // Dada pa direccion de un alumno, y el indice de la evaluación, devuelve
     // la nota del alumno
     mapping (address => mapping (uint => Nota)) public calificaciones;
     
@@ -120,29 +127,95 @@ contract Asignatura {
     function getOwner() public view returns (address){
         return owner;
     }
+    
+    /**
+     * Devuelve el nombre de un profesor en base a su Direccion
+     * 
+     * @param dirProfesor Direccion de usuario del profesor
+     * @return nombre Nombre del profesor
+     */
+     function getNombreProfesor(address dirProfesor) public view returns (string memory){
+         
+         string memory nombreProfesor = datosProfesor[dirProfesor];
+         bytes memory bnp = bytes(nombreProfesor);
+         require(bnp.length != 0, "La direccion de usuario del profesor no existe");
+         return datosProfesor[dirProfesor];
+     }
+     
+     /**
+      * Devuelve los datos de un alumno
+      * 
+      * @param dirAlumno Direccion del alumno
+      * @return datos del alumno
+      */
+      function getDatosAlumno(address dirAlumno) public view returns (DatosAlumno memory){
+          return datosAlumno[dirAlumno];
+      }
+      
+    /**
+     * Devuelve la calificacion de un alumno
+     * 
+     * @param dirAlumno direccion de un alumno
+     * @param indice indice de la evaluacion
+     * @return Nota del alumno
+     */
+     function getNota(address dirAlumno, uint indice) public view returns (Nota memory){
+         return calificaciones[dirAlumno][indice];
+     } 
      
     /**
       * Cambiar el valor de la propiedad coordinador
       * 
       * @param coord Direccion del coordinador
     */
-    function setCoordinador(address coord) public {
+    function setCoordinador(address coord) soloOwner soloAbierta public {
         coordinador = coord;
     }
       
     /**
      * Metodo para cerrar una asignatura
      * 
+    */
+    function cerrar() soloCoordinador public{
+        cerrada = true;
+    }
+    
+    /**
+     * Añadir un profesor a una asignatura.No puede ser vacio el nombre, no se puede añadir un profesor varias veces,
+     * y da igual que varios profesores tengan el mismo nombre
+     * 
+     * @param dirProfesor direccion de usuario del profesor
+     * @param nombreProfesor Nombre del profesor
+    */
+    function addProfesor(address dirProfesor, string memory nombreProfesor) soloOwner soloAbierta public {
+        
+        bytes memory bn = bytes(nombreProfesor);
+        require(bn.length != 0, "El nombre del profesor no puede estar vacio");
+        require(cerrada = false, "No se puede anadir un profesor a una asignatura cerrada");
+        
+        string memory existeProf = getNombreProfesor(dirProfesor);
+        bytes memory bep = bytes(existeProf);
+        require(bep.length == 0, "No se puede anadir a un profesor varias veces");
+        
+        profesores.push(dirProfesor);
+        datosProfesor[dirProfesor] = nombreProfesor;
+    }
+    
+    /**
+     * Numero de profesores anadidos
+     * 
+     * @return Numero de profesores anadidos
      */
-     function cerrar() public{
-         cerrada = true;
-     }
-       
+    function profesoresLength() public view returns (uint) {
+        return profesores.length;
+    }
+    
+    
      
     /**
-     * El número de evaluaciones creadas
+     * El numero de evaluaciones creadas
      * 
-     * @return El número de evaluaciones creadas
+     * @return El numero de evaluaciones creadas
      */
      function evaluacionesLength () public view returns (uint) {
         return evaluaciones.length;
@@ -150,7 +223,7 @@ contract Asignatura {
     
     /**
      * Crear una prueba de evaluación de la asignatura. Por ejemplo, el primer parcial, o la
-     * práctica 3
+     * practica 1
      * 
      * Las evaluaciones se meterán en el array evaluaciones, y nos referimos a ellas por su posición en el array
      * 
@@ -160,9 +233,9 @@ contract Asignatura {
      * 
      * @return La posición en el array de evaluaciones
      */
-     function creaEvaluacion (string memory _nombre, uint _fecha, uint _puntos) soloProfesor public returns (uint) {
+     function creaEvaluacion (string memory _nombre, uint _fecha, uint _puntos) soloAbierta soloCoordinador public returns (uint) {
         
-        require(cerrada == false, "La asignatura esta cerrada y no se puede crear una evaluacion");
+        //require(cerrada == false, "La asignatura esta cerrada y no se puede crear una evaluacion");
         
         bytes memory bn = bytes(_nombre);
         require(bn.length != 0, "El nombre de la evaluacion no puede ser vacio");
@@ -188,14 +261,20 @@ contract Asignatura {
      * @param _nombre El nombre del alumno
      * @param _email El email del alumno
      */
-    function automatricula (string memory _nombre, string memory _email) noMatriculados public {
+    function automatricula (string memory _nombre, string memory _email, string memory _dni) soloAbierta noMatriculados public {
         
-        require(cerrada == false, "La asignatura esta cerrada y no se pueden matricular nuevos alumnos");
+        //require(cerrada == false, "La asignatura esta cerrada y no se pueden matricular nuevos alumnos");
         
-        bytes memory b = bytes(_nombre);
-        require(b.length != 0, "El nombre no puede ser vacio");
+        bytes memory bn = bytes(_nombre);
+        require(bn.length != 0, "El nombre no puede ser vacio");
+        bytes memory bdni = bytes(_dni);
+        require(bdni.length != 0, "El dni no puede ser vacio");
         
-        DatosAlumno memory datos = DatosAlumno(_nombre,_email);
+        string memory existeDNI = getDatosAlumno(msg.sender).dni;
+        bytes memory bedni = bytes(existeDNI);
+        require(bedni.length == 0, "El dni ya existe");
+        
+        DatosAlumno memory datos = DatosAlumno(_nombre,_email,_dni);
         
         datosAlumno[msg.sender] = datos;
         
@@ -208,11 +287,13 @@ contract Asignatura {
      * 
      * @return _nombre El nombre del alumno que invoca el metodo
      * @return _email El email del alumno que invoca el metodo
+     * @return _dni El dni del alumno que invoca el metodo
     */
-    function quienSoy() soloMatriculados public view returns (string memory _nombre, string memory _email){
+    function quienSoy() soloMatriculados public view returns (string memory _nombre, string memory _email, string memory _dni){
         DatosAlumno memory datos = datosAlumno[msg.sender];
         _nombre = datos.nombre;
         _email = datos.email;
+        _dni = datos.dni;
     }
     
     /**
@@ -223,9 +304,9 @@ contract Asignatura {
      * @param tipo tipo de nota
      * @param calificacion La calificación, multiplicada por 100 porque no hay decimales
      */
-    function califica(address alumno, uint evaluacion, TipoNota tipo, uint calificacion) soloProfesor public{
+    function califica(address alumno, uint evaluacion, TipoNota tipo, uint calificacion) soloProfesor soloAbierta public{
         
-        require(cerrada == false, "La asignatura esta cerrada y no se pueden poner notas");
+        //require(cerrada == false, "La asignatura esta cerrada y no se pueden poner notas");
         
         require(estaMatriculado(alumno), "Solo se pueden calificar a un alumno matriculado");
         require(evaluacion < evaluaciones.length, "No se puede calificar una evaluacion que no existe");
@@ -294,6 +375,36 @@ contract Asignatura {
          require(!estaMatriculado(msg.sender), "Solo permitio a alumnos no matriculados");
          _;
      }
+     
+     /**
+      * Modificador para que una funcion solo la pueda ejecutar el owner del contrato
+      * 
+      * Se usa en setCoordinador y addProfesor
+      */
+     modifier soloOwner(){
+         require(msg.sender == owner, "Solo permitido al owner del contrato");
+         _;
+     }
+     
+     /**
+      * Modificador para que una funcion solo la pueda ejecutar el coordinador de la asignatura
+      * 
+      * Se usa en cerrar y crearEvaluacion
+      */
+     modifier soloCoordinador(){
+         require(msg.sender == coordinador, "Solo permitido al coordinador de la asignatura");
+         _;
+     }
+     
+     /**
+      * Modificador para que una funcion solo pueda llamarse si la asignatura no esta cerrada
+      * 
+      * Se usa en setCoordinador, addProfesor, automatricula, crearEvaluacion, califica
+      */
+      modifier soloAbierta(){
+          require(cerrada == false, "Solo permitido si la asignatura esta abierta");
+          _;
+      }
      
      /**
       * No se permite la recepcion de dinero
