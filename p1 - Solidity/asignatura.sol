@@ -19,6 +19,20 @@ contract Asignatura {
     /// Curso académico
     string public curso;
     
+    // Usuario que ha desplegado el contrato
+    address public owner;
+    
+    // Direccion de usuario del coordinador de una asignatura
+    address public coordinador;
+    
+    // Boolean para ver si la asignatura está cerrada o no
+    /* Si la asignatura está cerrada=true:
+    - No matricular nuevos alumnos - Hecho
+    - No añadir profesores - FALTA
+    - No crear evaluaciones - Hecho
+    - No poner notas - Hecho */ 
+    bool public cerrada;
+    
     /**
      * Datos de una evaluación
      */
@@ -76,8 +90,55 @@ contract Asignatura {
         nombre = _nombre;
         curso = _curso;
         profesor = msg.sender;
+        owner = msg.sender;
+        cerrada = false;
     }
     
+    /**
+     * Metodo para consultar el nombre de la asignatura
+     * 
+     * @return nombre El nombre de la asignatura
+    */
+    function getNombre() public view returns (string memory){
+        return nombre;
+    }
+     
+    /**
+     * Metodo para consultar el curso de la asignatura
+     * 
+     * @return curso El curso de la asignatura
+    */
+    function getCurso() public view returns (string memory){
+        return curso;
+    }
+     
+    /**
+     * Metodo para consultar la direccion del propietario del contrato
+     * 
+     * @return owner Direccion del propietario del contrato
+    */
+    function getOwner() public view returns (address){
+        return owner;
+    }
+     
+    /**
+      * Cambiar el valor de la propiedad coordinador
+      * 
+      * @param coord Direccion del coordinador
+    */
+    function setCoordinador(address coord) public {
+        coordinador = coord;
+    }
+      
+    /**
+     * Metodo para cerrar una asignatura
+     * 
+     */
+     function cerrar() public{
+         cerrada = true;
+     }
+       
+     
     /**
      * El número de evaluaciones creadas
      * 
@@ -100,6 +161,8 @@ contract Asignatura {
      * @return La posición en el array de evaluaciones
      */
      function creaEvaluacion (string memory _nombre, uint _fecha, uint _puntos) soloProfesor public returns (uint) {
+        
+        require(cerrada == false, "La asignatura esta cerrada y no se puede crear una evaluacion");
         
         bytes memory bn = bytes(_nombre);
         require(bn.length != 0, "El nombre de la evaluacion no puede ser vacio");
@@ -126,6 +189,8 @@ contract Asignatura {
      * @param _email El email del alumno
      */
     function automatricula (string memory _nombre, string memory _email) noMatriculados public {
+        
+        require(cerrada == false, "La asignatura esta cerrada y no se pueden matricular nuevos alumnos");
         
         bytes memory b = bytes(_nombre);
         require(b.length != 0, "El nombre no puede ser vacio");
@@ -159,6 +224,8 @@ contract Asignatura {
      * @param calificacion La calificación, multiplicada por 100 porque no hay decimales
      */
     function califica(address alumno, uint evaluacion, TipoNota tipo, uint calificacion) soloProfesor public{
+        
+        require(cerrada == false, "La asignatura esta cerrada y no se pueden poner notas");
         
         require(estaMatriculado(alumno), "Solo se pueden calificar a un alumno matriculado");
         require(evaluacion < evaluaciones.length, "No se puede calificar una evaluacion que no existe");
