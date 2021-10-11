@@ -5,7 +5,7 @@ pragma solidity ^0.8.7;
 contract Asignatura {
     
     /// Versión 2020 - Teoría
-    uint public version = 2020;
+    uint public version = 2021;
     /**
      * address del profesor que ha desplegado el contrato.
      * El contrato lo despliega el profesor.
@@ -191,11 +191,16 @@ contract Asignatura {
         
         bytes memory bn = bytes(nombreProfesor);
         require(bn.length != 0, "El nombre del profesor no puede estar vacio");
-        require(cerrada = false, "No se puede anadir un profesor a una asignatura cerrada");
+        //require(cerrada = false, "No se puede anadir un profesor a una asignatura cerrada");
         
-        string memory existeProf = getNombreProfesor(dirProfesor);
-        bytes memory bep = bytes(existeProf);
-        require(bep.length == 0, "No se puede anadir a un profesor varias veces");
+        bool existeProf = false;
+        for(uint256 i = 0; i < profesores.length; i++){
+            if(dirProfesor == profesores[i]){
+                existeProf = true;
+            }
+        }
+        
+        require(existeProf == false, "No se puede anadir a un profesor varias veces");
         
         profesores.push(dirProfesor);
         datosProfesor[dirProfesor] = nombreProfesor;
@@ -310,7 +315,7 @@ contract Asignatura {
         
         require(estaMatriculado(alumno), "Solo se pueden calificar a un alumno matriculado");
         require(evaluacion < evaluaciones.length, "No se puede calificar una evaluacion que no existe");
-        require(calificacion <= 100, "No se puede calificar con una nota superior a la maxima permitida");
+        require(calificacion <= 1000, "No se puede calificar con una nota superior a la maxima permitida");
         
         Nota memory nota = Nota(tipo, calificacion);
         
